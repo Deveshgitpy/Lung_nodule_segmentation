@@ -1,0 +1,180 @@
+# =============================================================================
+# configs/training_config.yaml
+# Master configuration for U-Net lung nodule segmentation training.
+# All hyperparameters, paths, and experiment settings are defined here
+# to ensure full reproducibility across runs.
+# =============================================================================
+
+# ─── Experiment Metadata ─────────────────────────────────────────────────────
+experiment:
+  name: "unet_luna16_baseline"
+  description: "3D U-Net segmentation of lung nodules on LUNA16 dataset"
+  tags: ["unet", "lung", "segmentation", "luna16", "3d"]
+  notes: "Baseline experiment with Dice+BCE loss and standard augmentations"
+
+# ─── Reproducibility ─────────────────────────────────────────────────────────
+seed: 42
+deterministic: true          # torch.backends.cudnn.deterministic
+benchmark: false             # torch.backends.cudnn.benchmark (disable for repro)
+
+# ─── Data Paths ──────────────────────────────────────────────────────────────
+data:
+  raw_data_dir: "/data/LUNA16/raw"
+  preprocessed_dir: "/data/LUNA16/preprocessed"
+  annotations_csv: "/data/LUNA16/annotations.csv"
+  candidates_csv: "/data/LUNA16/candidates_V2.csv"
+  output_dir: "outputs/"
+
+  # Cross-validation: LUNA16 provides 10 subsets (0-9)
+  # Use subsets 0-7 for train, 8 for val, 9 for test
+  train_subsets: [0, 1, 2, 3, 4, 5, 6, 7]
+  val_subsets: [8]
+  test_subsets: [9]
+
+# ─── Preprocessing ───────────────────────────────────────────────────────────
+preprocessing:
+  # Resample all volumes to isotropic 1mm³ spacing
+  target_spacing: [1.0, 1.0, 1.0]   # [z, y, x] in mm
+  # HU windowing for lung tissue
+  hu_min: -1000                       # Air = -1000 HU
+  hu_max: 400                         # Soft tissue upper bound
+  # Normalize to [0, 1] after windowing
+  normalize: true
+  # Clip extreme HU values before windowing
+  clip_min: -1200
+  clip_max: 600
+
+# ─── Patch Extraction ────────────────────────────────────────────────────────
+patches:
+  # 3D patch size for training (must be divisible by 2^depth = 16)
+  patch_size: [64, 64, 64]           # [D, H, W]
+  # Positive (nodule) patches per scan
+  pos_patches_per_scan: 8
+  # Negative (background) patches per scan — class balance
+  neg_patches_per_scan: 8
+  # Minimum fraction of patch that must be lung tissue
+  min_lung_fraction: 0.1
+  # Overlap fraction for sliding window inference
+  inference_overlap: 0.5
+
+# ─── Augmentation ────────────────────────────────────────────────────────────
+augmentation:
+  enabled: true
+  # Random rotation (degrees) — applied uniformly to all 3 axes
+  rotation_range: [-15, 15]
+  # Random flips along each axis
+  flip_axis: [0, 1, 2]               # d, h, w
+  flip_prob: 0.5
+  # Elastic deformation
+  elastic_enabled: true
+  elastic_num_control_points: 7
+  elastic_max_displacement: 7.5
+  # Intensity augmentation
+  intensity_scale_range: [0.9, 1.1]
+  intensity_shift_range: [-0.1, 0.1]
+  # Gaussian noise
+  gaussian_noise_enabled: true
+  gaussian_noise_std: 0.02
+  # Gaussian blur
+  gaussian_blur_enabled: true
+  gaussian_blur_sigma: [0.5, 1.0]
+  # Apply augmentation with this probability
+  aug_prob: 0.8
+
+# ─── Model Architecture ──────────────────────────────────────────────────────
+model:
+  name: "UNet3D"
+  in_channels: 1                     # Grayscale CT
+  out_channels: 1                    # Binary nodule mask
+  # Feature map channel sizes at each encoder depth level
+  encoder_channels: [32, 64, 128, 256]
+  bottleneck_channels: 512
+  # Dropout in bottleneck
+  dropout_rate: 0.2
+  # Batch normalization momentum
+  bn_momentum: 0.1
+  # Bilinear upsampling vs transposed conv
+  use_transposed_conv: true
+
+# ─── Training ────────────────────────────────────────────────────────────────
+training:
+  num_epochs: 200
+  batch_size: 2                      # 3D patches are memory-intensive
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true              # torch.cuda.amp (FP16 training)
+  gradient_clip_norm: 1.0
+  accumulate_grad_batches: 4         # Effective batch size = 2 * 4 = 8
+  # Early stopping
+  early_stopping: true
+  early_stopping_patience: 30
+  early_stopping_metric: "val_dice"
+  early_stopping_mode: "max"
+
+# ─── Optimizer ───────────────────────────────────────────────────────────────
+optimizer:
+  name: "Adam"
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+
+# ─── Learning Rate Scheduler ─────────────────────────────────────────────────
+scheduler:
+  name: "CosineAnnealingLR"          # Smooth decay over training
+  T_max: 200                          # Equal to num_epochs
+  eta_min: 1.0e-7
+  # Warm-up epochs before cosine decay kicks in
+  warmup_epochs: 10
+  warmup_start_lr: 1.0e-6
+
+# ─── Loss Function ───────────────────────────────────────────────────────────
+loss:
+  name: "DiceBCELoss"
+  # Weight of Dice loss term vs BCE loss term
+  dice_weight: 0.6
+  bce_weight: 0.4
+  # Smoothing factor in Dice numerator/denominator (avoids divide-by-zero)
+  dice_smooth: 1.0
+  # Positive class weight for BCE (compensates nodule/background imbalance)
+  # Nodules occupy ~0.1% of voxels on average
+  pos_weight: 10.0
+
+# ─── Checkpointing ───────────────────────────────────────────────────────────
+checkpointing:
+  checkpoint_dir: "outputs/checkpoints"
+  save_every_n_epochs: 10
+  keep_top_k: 3                      # Keep only the top-k best checkpoints
+  save_best_metric: "val_dice"
+  save_best_mode: "max"
+  resume_from: null                  # Set to checkpoint path to resume
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+logging:
+  use_wandb: false                   # Set to true with WANDB_API_KEY set
+  wandb_project: "lung-nodule-segmentation"
+  wandb_entity: null                 # Your wandb team/username
+  log_every_n_steps: 10
+  val_every_n_epochs: 5
+
+# ─── Inference ───────────────────────────────────────────────────────────────
+inference:
+  patch_size: [64, 64, 64]
+  overlap: 0.5
+  batch_size: 4
+  # Probability threshold for binary mask
+  threshold: 0.5
+  # Gaussian importance map for patch weighting (smoother outputs)
+  use_gaussian_weights: true
+  output_dir: "outputs/predictions"
+
+# ─── Post-processing ─────────────────────────────────────────────────────────
+postprocessing:
+  # Remove connected components smaller than this volume (voxels)
+  min_component_size: 10
+  # Morphological closing to fill holes in predicted masks
+  morphological_closing: true
+  closing_radius: 2
+  # Morphological dilation to expand mask borders slightly
+  morphological_dilation: false
+  dilation_radius: 1
