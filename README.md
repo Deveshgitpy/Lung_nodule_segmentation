@@ -1,4 +1,4 @@
-# 🫁 U-Net for Lung Nodule Segmentation in Chest CT Scans
+#  U-Net for Lung Nodule Segmentation in Chest CT Scans
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
@@ -9,7 +9,7 @@
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Background](#-background)
 - [Dataset: LUNA16](#-dataset-luna16)
@@ -28,7 +28,7 @@
 
 ---
 
-## 🏥 Background
+##  Background
 
 Lung cancer is the leading cause of cancer-related mortality worldwide, responsible for approximately **1.8 million deaths per year** (WHO, 2023). Early detection of pulmonary nodules — small, roughly spherical growths within lung tissue — is critical for improving patient survival rates. CT-based screening programs such as the National Lung Screening Trial (NLST) have demonstrated up to **20% reduction in lung cancer mortality** through low-dose CT screening.
 
@@ -41,7 +41,7 @@ Automated segmentation pipelines powered by convolutional neural networks, parti
 
 ---
 
-## 📂 Dataset: LUNA16
+##  Dataset: LUNA16
 
 The **Lung Nodule Analysis 2016 (LUNA16)** challenge dataset is derived from the publicly available LIDC-IDRI dataset and is the standard benchmark for pulmonary nodule detection and segmentation research.
 
@@ -72,7 +72,7 @@ See [`data/dataset_instructions.md`](data/dataset_instructions.md) for full inst
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 This implementation uses a **3D U-Net** architecture adapted for volumetric CT segmentation.
 
@@ -112,7 +112,7 @@ Input [B, 1, D, H, W]
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 lung-nodule-segmentation-unet/
@@ -179,7 +179,7 @@ lung-nodule-segmentation-unet/
 
 ---
 
-## ⚙️ Installation
+##  Installation
 
 ### Prerequisites
 - Python 3.9+
@@ -210,7 +210,7 @@ pip install -r requirements.txt
 
 ---
 
-## 📥 Data Preparation
+##  Data Preparation
 
 ```bash
 # Follow dataset download instructions
@@ -225,7 +225,7 @@ python preprocessing/ct_preprocessing.py \
 
 ---
 
-## 🚀 Training
+##  Training
 
 ### Single GPU
 
@@ -265,7 +265,7 @@ python training/train.py --config configs/training_config.yaml --use_wandb
 
 ---
 
-## 🔍 Inference
+##  Inference
 
 ### Single Volume
 
@@ -289,7 +289,7 @@ python inference/inference.py \
 
 ---
 
-## 📊 Evaluation
+##  Evaluation
 
 ```bash
 python evaluation/metrics.py \
@@ -300,7 +300,7 @@ python evaluation/metrics.py \
 
 ---
 
-## 📈 Results
+##  Results
 
 ### Quantitative Results on LUNA16 (10-Fold Cross-Validation)
 
@@ -323,7 +323,7 @@ python evaluation/metrics.py \
 
 ---
 
-## 🖼️ Visualization
+##  Visualization
 
 ```bash
 # Generate prediction overlays
@@ -341,7 +341,7 @@ python visualization/attention_maps.py \
 
 ---
 
-## 🔁 Reproducibility
+##  Reproducibility
 
 All experiments use fixed random seeds. To replicate paper results:
 
@@ -359,7 +359,7 @@ Key reproducibility measures:
 
 ---
 
-## 🔭 Future Work
+##  Future Work
 
 - [ ] **Semi-supervised learning**: leverage unannotated CT scans with pseudo-labeling
 - [ ] **Transformer backbone**: replace CNN encoder with Swin Transformer (SwinUNETR)
@@ -370,7 +370,7 @@ Key reproducibility measures:
 
 ---
 
-## 📖 Citation
+##  Citation
 
 If you use this code in your research, please cite:
 
@@ -404,7 +404,7 @@ If you use this code in your research, please cite:
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
 
